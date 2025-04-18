@@ -113,18 +113,33 @@ function formatDateTime(date: Date): string {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-// APIからイベントを取得する関数（実際にはダミーデータを返す）
+// サーバーサイドAPIからイベントを取得する関数
 export async function fetchLunchEvents(startDate: Date, endDate: Date): Promise<ConnpassResponse> {
-  // 実際のAPIを使用する場合は以下のようなコードになります
-  // const params = new URLSearchParams({
-  //   start: formatDate(startDate),
-  //   end: formatDate(endDate),
-  //   order: '2', // 開催日順
-  //   count: '100'
-  // });
-  // const response = await fetch(`https://connpass.com/api/v2/event/?${params}`);
-  // return await response.json();
-  
-  // ダミーデータを返す
-  return generateDummyData(startDate, endDate);
+  try {
+    // サーバーサイドAPIのURLパラメータを設定
+    const params = new URLSearchParams({
+      start: formatDate(startDate),
+      end: formatDate(endDate)
+    });
+
+    // サーバーサイドAPIリクエスト
+    const response = await fetch(`/api/events?${params}`, {
+      method: 'GET'
+    });
+
+    // レスポンスのステータスコードをチェック
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`);
+      // APIエラーの場合はダミーデータを返す
+      return generateDummyData(startDate, endDate);
+    }
+
+    // レスポンスをJSONとしてパース
+    const data = await response.json();
+    return data as ConnpassResponse;
+  } catch (error) {
+    // エラーが発生した場合はログに出力し、ダミーデータを返す
+    console.error('Error fetching events from server API:', error);
+    return generateDummyData(startDate, endDate);
+  }
 }
