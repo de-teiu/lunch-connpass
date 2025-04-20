@@ -39,94 +39,9 @@ export interface ConnpassErrorResponse {
 // APIレスポンスの型（正常レスポンスまたはエラーレスポンス）
 export type ApiResponse = ConnpassResponse | ConnpassErrorResponse;
 
-// ダミーデータを生成する関数
-export function generateDummyData(startDate: Date, endDate: Date): ConnpassResponse {
-  const events: ConnpassEvent[] = [];
-
-  // 開始日から終了日までの各日付について
-  const currentDate = new Date(startDate);
-  while (currentDate <= endDate) {
-    // 平日（月〜金）のみイベントを生成
-    const dayOfWeek = currentDate.getDay();
-    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-      // ランチタイム（12:00-13:00）のイベント
-      const eventDate = new Date(currentDate);
-      // 12:00-13:00のイベントを設定
-      const startTime = new Date(currentDate);
-      startTime.setHours(12, 0, 0);
-
-      const endTime = new Date(currentDate);
-      endTime.setHours(13, 0, 0);
-
-      events.push({
-        id: Math.floor(Math.random() * 100000),
-        title: `ランチタイム勉強会: ${formatDate(currentDate)}`,
-        catch: `平日のランチタイムに気軽に参加できる勉強会です`,
-        description: `
-                # ランチタイム勉強会
-                
-                平日のランチタイムに気軽に参加できる勉強会です。
-                お弁当を食べながら、最新の技術トレンドについて話し合いましょう。
-                
-                ## 対象者
-                - エンジニア
-                - デザイナー
-                - プロダクトマネージャー
-                
-                ## 持ち物
-                - お弁当（各自でご用意ください）
-                - PC（必要に応じて）
-              `,
-        url: `https://connpass.com/event/dummy-${formatDate(currentDate)}/`,
-        image_url: '',
-        event_type: 'study',
-        open_status: 'open',
-        group: {},
-        started_at: formatDateTime(startTime),
-        ended_at: formatDateTime(endTime),
-        limit: 30,
-        hash_tag: 'ランチタイム勉強会',
-        place: 'オンライン',
-        address: '',
-        lat: '',
-        lon: '',
-        owner_id: 12345,
-        owner_nickname: 'lunch_organizer',
-        owner_display_name: 'ランチ勉強会運営',
-        accepted: Math.floor(Math.random() * 30),
-        waiting: Math.floor(Math.random() * 10),
-        updated_at: formatDateTime(new Date())
-      });
-    }
-
-    // 次の日に進める
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-
-  return {
-    results_start: 1,
-    results_returned: events.length,
-    results_available: events.length,
-    events: events
-  };
-}
-
 // 日付をYYYY-MM-DD形式にフォーマットする関数
 function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
-}
-
-// 日時をYYYY-MM-DD HH:MM:SS形式にフォーマットする関数（日本時間）
-function formatDateTime(date: Date): string {
-  // 日本時間（UTC+9）でフォーマット
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
 // サーバーサイドAPIからイベントを取得する関数
@@ -153,8 +68,9 @@ export async function fetchLunchEvents(startDate: Date, endDate: Date): Promise<
 
     return data as ConnpassResponse;
   } catch (error) {
-    // エラーが発生した場合はログに出力し、ダミーデータを返す
-    console.error('Error fetching events from server API:', error);
-    return generateDummyData(startDate, endDate);
+    console.log(error);
+    return {
+      error: '予期せぬエラーが発生しました。'
+    } as ConnpassErrorResponse;
   }
 }

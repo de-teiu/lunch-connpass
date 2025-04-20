@@ -1,6 +1,5 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { generateDummyData } from '$lib/connpassService';
 import type { ConnpassEvent, ConnpassResponse } from '$lib/connpassService';
 import { CONNPASS_API_KEY } from '$env/static/private';
 
@@ -87,7 +86,6 @@ export const GET: RequestHandler = async ({ url }) => {
   // 日付リストを4日ごとに分割
   const chunkedDateLists = chunkDateList(dateList, 4);
 
-  // ダミーデータ生成用に日付オブジェクトを保持
   try {
     // 各チャンクごとにAPIリクエストを送信し、結果を結合
     let allEvents: ConnpassEvent[] = [];
@@ -128,12 +126,6 @@ export const GET: RequestHandler = async ({ url }) => {
       allEvents = [...allEvents, ...chunkData.events];
     }
 
-    // すべてのAPIリクエストが失敗した場合はダミーデータを返す
-    if (allEvents.length === 0) {
-      console.error('All API requests failed, returning dummy data');
-      return json(generateDummyData(startDate, endDate));
-    }
-
     // 結合したデータを作成
     const data: ConnpassResponse = {
       results_start: 1,
@@ -170,38 +162,6 @@ export const GET: RequestHandler = async ({ url }) => {
     };
     return json(filteredData);
   } catch (error) {
-    // エラーが発生した場合はログに出力し、ダミーデータを返す
-    console.error('Error fetching events from connpass API:', error);
-    const dummyData = generateDummyData(startDate, endDate);
-
-    // ダミーデータもランチタイムでフィルタリング
-    const lunchTimeDummyEvents = dummyData.events.filter((event) => {
-      // started_atとended_atから時刻部分を抽出
-      const startedAtTime = event.started_at.split(' ')[1]; // "HH:MM:SS"形式
-      const endedAtTime = event.ended_at.split(' ')[1]; // "HH:MM:SS"形式
-
-      // 時刻を比較するために時間と分を抽出
-      const [startHour, startMinute] = startedAtTime.split(':').map(Number);
-      const [endHour, endMinute] = endedAtTime.split(':').map(Number);
-
-      // 12:00より後かつ13:00より前のイベントをフィルタリング
-      const isAfter1200 = startHour > 12 || (startHour === 12 && startMinute > 0);
-      const isBefore1300 = endHour < 13 || (endHour === 13 && endMinute === 0);
-
-      return isAfter1200 && isBefore1300;
-    });
-
-    // ダミーデータもstarted_atの昇順（早い順）にソート
-    const sortedDummyEvents = lunchTimeDummyEvents.sort((a, b) => {
-      return new Date(a.started_at).getTime() - new Date(b.started_at).getTime();
-    });
-
-    const filteredDummyData: ConnpassResponse = {
-      ...dummyData,
-      results_returned: sortedDummyEvents.length,
-      events: sortedDummyEvents
-    };
-
-    return json(filteredDummyData);
+    return json({ error: 'connpass APIへの問い合わせ時にエラーが発生しました' }, { status: 400 });
   }
 };
