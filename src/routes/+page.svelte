@@ -45,7 +45,7 @@
       events = response.events;
 
       if (events.length === 0) {
-        error = '指定された期間内にランチタイムイベントが見つかりませんでした';
+        error = '指定された期間内にイベントが見つかりませんでした';
       }
     } catch (err) {
       error = err instanceof Error ? err.message : '検索中にエラーが発生しました';
@@ -75,8 +75,6 @@
 </script>
 
 <div class="container mx-auto px-4 py-8">
-  <h1 class="mb-8 text-center text-3xl font-bold">ランチタイム勉強会検索</h1>
-
   <div class="mb-8 rounded-lg bg-white p-6 shadow-md">
     <h2 class="mb-4 text-xl font-semibold">検索条件</h2>
 
@@ -90,7 +88,7 @@
           type="date"
           id="startDate"
           bind:value={startDate}
-          class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-4 py-2"
         />
       </div>
 
@@ -100,7 +98,7 @@
           type="date"
           id="endDate"
           bind:value={endDate}
-          class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-4 py-2"
         />
       </div>
 
@@ -188,18 +186,17 @@
                     d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"
                   />
                 </svg>
-                <span class="text-gray-700"
-                  >定員: {event.limit}人（参加: {event.accepted}人、補欠: {event.waiting}人）</span
-                >
+                <span class="text-gray-700">
+                  定員: {event.limit ? `${event.limit}人` : 'なし'}（参加: {event.accepted}人、補欠: {event.waiting}人）
+                </span>
               </div>
             </div>
 
             <a
-              href={event.event_url}
+              href={event.url}
               target="_blank"
               rel="noopener noreferrer"
-              class="block w-full rounded-md bg-blue-600 px-4 py-2 text-center font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-            >
+              class="block w-full rounded-md bg-blue-600 px-4 py-2 text-center font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none">
               詳細を見る
             </a>
           </div>

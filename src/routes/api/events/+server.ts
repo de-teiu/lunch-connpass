@@ -48,7 +48,6 @@ export const GET: RequestHandler = async ({ url }) => {
   // URLパラメータから日付範囲を取得
   const startParam = url.searchParams.get('start');
   const endParam = url.searchParams.get('end');
-  console.log('startParam:', startParam, 'endParam:', endParam);
   if (!startParam || !endParam) {
     return json({ error: 'start and end parameters are required' }, { status: 400 });
   }
@@ -71,7 +70,6 @@ export const GET: RequestHandler = async ({ url }) => {
 
   // 日付リストを3日ごとに分割
   const chunkedDateLists = chunkDateList(dateList, 3);
-  console.log('Chunked date lists:', chunkedDateLists);
 
   // ダミーデータ生成用に日付オブジェクトを保持
   try {
@@ -87,8 +85,6 @@ export const GET: RequestHandler = async ({ url }) => {
     // 各チャンクごとにAPIリクエストを送信
     for (const chunk of chunkedDateLists) {
       const ymdParam = chunk.join(',');
-      console.log('Requesting with ymd:', ymdParam);
-
       // APIパラメータを設定
       const params = new URLSearchParams({
         ymd: ymdParam,
@@ -131,10 +127,6 @@ export const GET: RequestHandler = async ({ url }) => {
     };
     // ランチタイムイベントのフィルタリング（12:00より後かつ13:00より前のイベント）
     const lunchTimeEvents = data.events.filter((event: ConnpassEvent) => {
-      console.log('----------------------------------------------------------');
-      console.log('title:', event.title);
-      console.log('started_at:', event.started_at);
-      console.log('ended_at:', event.ended_at);
       // started_atとended_atから時刻部分を抽出
       const startedAtTime = event.started_at.split('T')[1]; // "HH:MM:SS"形式
       const endedAtTime = event.ended_at.split('T')[1]; // "HH:MM:SS"形式
