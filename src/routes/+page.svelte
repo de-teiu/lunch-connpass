@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fetchLunchEvents, type ConnpassEvent } from '$lib/connpassService';
+  import { fetchLunchEvents, type ConnpassEvent, type ApiResponse } from '$lib/connpassService';
 
   let startDate: string;
   let endDate: string;
@@ -32,21 +32,13 @@
       const start = new Date(startDate);
       const end = new Date(endDate);
 
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        throw new Error('有効な日付を入力してください');
-      }
-
-      if (start > end) {
-        throw new Error('開始日は終了日より前である必要があります');
-      }
-
-      // 日付範囲が31日より大きい場合はエラー
-      const dayDiff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      if (dayDiff > 31) {
-        throw new Error('日付範囲は31日以内である必要があります');
-      }
-
       const response = await fetchLunchEvents(start, end);
+      
+      // APIからエラーが返された場合
+      if ('error' in response) {
+        throw new Error(response.error);
+      }
+      
       events = response.events;
 
       if (events.length === 0) {

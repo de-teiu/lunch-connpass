@@ -65,6 +65,22 @@ export const GET: RequestHandler = async ({ url }) => {
   const startDate = new Date(startParam);
   const endDate = new Date(endParam);
 
+  // 日付の有効性チェック
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    return json({ error: '有効な日付を入力してください' }, { status: 400 });
+  }
+
+  // 開始日と終了日の順序チェック
+  if (startDate > endDate) {
+    return json({ error: '開始日は終了日より前である必要があります' }, { status: 400 });
+  }
+
+  // 日付範囲が31日より大きい場合はエラー
+  const dayDiff = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  if (dayDiff > 31) {
+    return json({ error: '日付範囲は31日以内である必要があります' }, { status: 400 });
+  }
+
   // 日付リストを生成
   const dateList = generateDateList(startDate, endDate);
 

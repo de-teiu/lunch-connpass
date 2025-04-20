@@ -31,6 +31,14 @@ export interface ConnpassResponse {
   events: ConnpassEvent[];
 }
 
+// エラーレスポンスの型定義
+export interface ConnpassErrorResponse {
+  error: string;
+}
+
+// APIレスポンスの型（正常レスポンスまたはエラーレスポンス）
+export type ApiResponse = ConnpassResponse | ConnpassErrorResponse;
+
 // ダミーデータを生成する関数
 export function generateDummyData(startDate: Date, endDate: Date): ConnpassResponse {
   const events: ConnpassEvent[] = [];
@@ -122,7 +130,7 @@ function formatDateTime(date: Date): string {
 }
 
 // サーバーサイドAPIからイベントを取得する関数
-export async function fetchLunchEvents(startDate: Date, endDate: Date): Promise<ConnpassResponse> {
+export async function fetchLunchEvents(startDate: Date, endDate: Date): Promise<ApiResponse> {
   try {
     // サーバーサイドAPIのURLパラメータを設定
     const params = new URLSearchParams({
@@ -135,15 +143,14 @@ export async function fetchLunchEvents(startDate: Date, endDate: Date): Promise<
       method: 'GET'
     });
 
-    // レスポンスのステータスコードをチェック
-    if (!response.ok) {
-      console.error(`API error: ${response.status} ${response.statusText}`);
-      // APIエラーの場合はダミーデータを返す
-      return generateDummyData(startDate, endDate);
-    }
-
     // レスポンスをJSONとしてパース
     const data = await response.json();
+
+    // エラーレスポンスかどうかをチェック
+    if ('error' in data) {
+      return data as ConnpassErrorResponse;
+    }
+
     return data as ConnpassResponse;
   } catch (error) {
     // エラーが発生した場合はログに出力し、ダミーデータを返す
