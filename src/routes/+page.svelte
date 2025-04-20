@@ -28,7 +28,6 @@
   async function searchEvents() {
     isLoading = true;
     error = null;
-
     try {
       const start = new Date(startDate);
       const end = new Date(endDate);
@@ -39,6 +38,12 @@
 
       if (start > end) {
         throw new Error('開始日は終了日より前である必要があります');
+      }
+
+      // 日付範囲が31日より大きい場合はエラー
+      const dayDiff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      if (dayDiff > 31) {
+        throw new Error('日付範囲は31日以内である必要があります');
       }
 
       const response = await fetchLunchEvents(start, end);
@@ -55,23 +60,8 @@
     }
   }
 
-  // コンポーネントがマウントされたときに初期検索を実行
   onMount(() => {
-    searchEvents();
   });
-
-  // 日付をフォーマットする関数
-  function formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('ja-JP', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long',
-      hour: 'numeric',
-      minute: 'numeric'
-    }).format(date);
-  }
 </script>
 
 <div class="container mx-auto px-4 py-8">
@@ -108,15 +98,18 @@
           class="w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none md:w-auto"
           disabled={isLoading}
         >
-          {isLoading ? '検索中...' : '検索'}
+          検索
         </button>
       </div>
     </form>
   </div>
 
   {#if isLoading}
-    <div class="my-12 flex justify-center">
-      <div class="h-12 w-12 animate-spin rounded-full border-t-2 border-b-2 border-blue-500"></div>
+    <div class="fixed inset-0 bg-gray-600 opacity-80 flex items-center justify-center z-50">
+      <div class="p-6 rounded-lg flex flex-col items-center">
+        <div class="h-12 w-12 animate-spin rounded-full border-t-2 border-b-2 border-blue-500 mb-4"></div>
+        <p class="text-lg font-medium text-white">検索中...</p>
+      </div>
     </div>
   {:else if error}
     <div class="mb-8 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-700">
@@ -202,10 +195,6 @@
           </div>
         </div>
       {/each}
-    </div>
-  {:else}
-    <div class="mb-8 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-yellow-700">
-      検索結果がありません。日付範囲を変更して再度検索してください。
     </div>
   {/if}
 </div>

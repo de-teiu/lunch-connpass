@@ -68,8 +68,8 @@ export const GET: RequestHandler = async ({ url }) => {
   // 日付リストを生成
   const dateList = generateDateList(startDate, endDate);
 
-  // 日付リストを3日ごとに分割
-  const chunkedDateLists = chunkDateList(dateList, 3);
+  // 日付リストを4日ごとに分割
+  const chunkedDateLists = chunkDateList(dateList, 4);
 
   // ダミーデータ生成用に日付オブジェクトを保持
   try {
