@@ -1,38 +1,55 @@
-# sv
+# ランチタイム勉強会検索アプリ
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+このWebアプリケーションは、connpass APIを使用して12:00～13:00の間に開催されるオンラインの勉強会情報を検索するためのツールです。ランチタイムに参加できる勉強会を簡単に見つけることができます。
 
-## Creating a project
+## 機能
 
-If you're seeing this, you've probably already done this step. Congrats!
+- 指定した日付範囲内のランチタイム（12:00～13:00）に開催されるオンライン勉強会を検索
+- 検索結果の一覧表示
+- イベントの詳細情報（タイトル、概要、開催日時、場所、参加人数など）の表示
+- connpassの公式ページへのリンク
+
+## インストール方法
+
+リポジトリをクローンした後、以下のコマンドで必要なパッケージをインストールします。
 
 ```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
+npm install
 ```
 
-## Developing
+## 環境設定
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+アプリケーションを実行する前に、プロジェクトのルートディレクトリに `.env` ファイルを作成し、connpassから発行されたAPIキーを以下のように指定する必要があります。
+
+```
+CONNPASS_API_KEY=[あなたのAPIキー]
+```
+
+APIキーがない場合でも基本的な機能は使用できますが、APIの利用制限に引っかかる可能性があります。
+
+## 使用方法
+
+以下のコマンドでローカル開発サーバーを起動します。
 
 ```bash
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+ブラウザで `http://localhost:5173` にアクセスすると、アプリケーションが表示されます。
 
-To create a production version of your app:
+1. 開始日と終了日を選択します（日付範囲は31日以内である必要があります）
+2. 「検索」ボタンをクリックします
+3. 指定した期間内のランチタイム勉強会が一覧表示されます
+4. 各イベントの「詳細を見る」ボタンをクリックすると、connpassの公式ページに移動します
 
-```bash
-npm run build
-```
+## 技術スタック
 
-You can preview the production build with `npm run preview`.
+- [SvelteKit](https://kit.svelte.dev/) - Webアプリケーションフレームワーク
+- [Tailwind CSS](https://tailwindcss.com/) - スタイリング
+- [connpass API](https://connpass.com/about/api/) - イベント情報の取得
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## 注意事項
+
+- connpass APIの利用制限により、短時間に多数のリクエストを送信すると一時的にアクセスが制限される場合があります。
+- 検索結果はオンラインで開催されるイベントのみを表示します。
+- 日付範囲は31日以内に制限されています。
