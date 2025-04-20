@@ -33,6 +33,17 @@ function generateDateList(startDate: Date, endDate: Date): string[] {
   return dateList;
 }
 
+// 日付リストを指定したサイズのチャンクに分割する関数
+function chunkDateList(dateList: string[], chunkSize: number): string[][] {
+  const chunks: string[][] = [];
+
+  for (let i = 0; i < dateList.length; i += chunkSize) {
+    chunks.push(dateList.slice(i, i + chunkSize));
+  }
+
+  return chunks;
+}
+
 export const GET: RequestHandler = async ({ url }) => {
   // URLパラメータから日付範囲を取得
   const startParam = url.searchParams.get('start');
@@ -55,20 +66,17 @@ export const GET: RequestHandler = async ({ url }) => {
   const startDate = new Date(startParam);
   const endDate = new Date(endParam);
 
-  // 日付リストを生成してカンマ区切りで連結
+  // 日付リストを生成
   const dateList = generateDateList(startDate, endDate);
-  const ymdParam = dateList.join(',');
+
+  // 日付リストを3日ごとに分割
+  const chunkedDateLists = chunkDateList(dateList, 3);
+  console.log('Chunked date lists:', chunkedDateLists);
 
   // ダミーデータ生成用に日付オブジェクトを保持
-
   try {
-    // APIパラメータを設定
-    const params = new URLSearchParams({
-      ymd: ymdParam,
-      prefecture: 'online',
-      count: '100',
-      order: '2'
-    });
+    // 各チャンクごとにAPIリクエストを送信し、結果を結合
+    let allEvents: ConnpassEvent[] = [];
 
     // APIキーがある場合はヘッダーに追加
     const headers: HeadersInit = {};
@@ -76,21 +84,51 @@ export const GET: RequestHandler = async ({ url }) => {
       headers['X-API-Key'] = CONNPASS_API_KEY;
     }
 
-    // APIリクエスト
-    const response = await fetch(`https://connpass.com/api/v2/events/?${params}`, {
-      method: 'GET',
-      headers
-    });
+    // 各チャンクごとにAPIリクエストを送信
+    for (const chunk of chunkedDateLists) {
+      const ymdParam = chunk.join(',');
+      console.log('Requesting with ymd:', ymdParam);
 
-    // レスポンスのステータスコードをチェック
-    if (!response.ok) {
-      console.error(`API error: ${response.status} ${response.statusText}`);
-      // APIエラーの場合はダミーデータを返す
+      // APIパラメータを設定
+      const params = new URLSearchParams({
+        ymd: ymdParam,
+        prefecture: 'online',
+        count: '100',
+        order: '2'
+      });
+
+      // APIリクエスト
+      const response = await fetch(`https://connpass.com/api/v2/events/?${params}`, {
+        method: 'GET',
+        headers
+      });
+
+      // レスポンスのステータスコードをチェック
+      if (!response.ok) {
+        console.error(`API error for chunk ${ymdParam}: ${response.status} ${response.statusText}`);
+        continue; // エラーの場合は次のチャンクに進む
+      }
+
+      // レスポンスをJSONとしてパース
+      const chunkData = (await response.json()) as ConnpassResponse;
+
+      // イベントを結合
+      allEvents = [...allEvents, ...chunkData.events];
+    }
+
+    // すべてのAPIリクエストが失敗した場合はダミーデータを返す
+    if (allEvents.length === 0) {
+      console.error('All API requests failed, returning dummy data');
       return json(generateDummyData(startDate, endDate));
     }
 
-    // レスポンスをJSONとしてパース
-    const data = (await response.json()) as ConnpassResponse;
+    // 結合したデータを作成
+    const data: ConnpassResponse = {
+      results_start: 1,
+      results_returned: allEvents.length,
+      results_available: allEvents.length,
+      events: allEvents
+    };
     // ランチタイムイベントのフィルタリング（12:00より後かつ13:00より前のイベント）
     const lunchTimeEvents = data.events.filter((event: ConnpassEvent) => {
       console.log('----------------------------------------------------------');
@@ -111,11 +149,16 @@ export const GET: RequestHandler = async ({ url }) => {
       return isAfter1200 && isBefore1300;
     });
 
-    // フィルタリングした結果を返す
+    // フィルタリングした結果をstarted_atの昇順（早い順）にソート
+    const sortedEvents = lunchTimeEvents.sort((a, b) => {
+      return new Date(a.started_at).getTime() - new Date(b.started_at).getTime();
+    });
+
+    // ソートした結果を返す
     const filteredData: ConnpassResponse = {
       ...data,
-      results_returned: lunchTimeEvents.length,
-      events: lunchTimeEvents
+      results_returned: sortedEvents.length,
+      events: sortedEvents
     };
     return json(filteredData);
   } catch (error) {
@@ -140,10 +183,15 @@ export const GET: RequestHandler = async ({ url }) => {
       return isAfter1200 && isBefore1300;
     });
 
+    // ダミーデータもstarted_atの昇順（早い順）にソート
+    const sortedDummyEvents = lunchTimeDummyEvents.sort((a, b) => {
+      return new Date(a.started_at).getTime() - new Date(b.started_at).getTime();
+    });
+
     const filteredDummyData: ConnpassResponse = {
       ...dummyData,
-      results_returned: lunchTimeDummyEvents.length,
-      events: lunchTimeDummyEvents
+      results_returned: sortedDummyEvents.length,
+      events: sortedDummyEvents
     };
 
     return json(filteredDummyData);
