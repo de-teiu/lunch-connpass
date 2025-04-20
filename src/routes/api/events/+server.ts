@@ -1,120 +1,151 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { generateDummyData } from '$lib/connpassService';
-import type { ConnpassResponse } from '$lib/connpassService';
+import type { ConnpassEvent, ConnpassResponse } from '$lib/connpassService';
+import { CONNPASS_API_KEY } from '$env/static/private';
 
 // 日付をYYYY-MM-DD形式にフォーマットする関数
 function formatDate(date: Date): string {
-	return date.toISOString().split('T')[0];
+  return date.toISOString().split('T')[0];
 }
 
-// YYYY-MM-DD形式の文字列からYYYYMM形式を抽出する関数
-function extractYYYYMMFromDate(dateStr: string): string {
-	// YYYY-MM-DD形式から年と月を抽出
-	const parts = dateStr.split('-');
-	if (parts.length >= 2) {
-		const year = parts[0];
-		const month = parts[1];
-		return `${year}${month}`;
-	}
-	return '';
+// YYYY-MM-DD形式の文字列からYYYYMMDD形式に変換する関数
+function convertToYYYYMMDD(dateStr: string): string {
+  // YYYY-MM-DD形式からハイフンを削除
+  return dateStr.replace(/-/g, '');
 }
 
-// YYYYMM形式の文字列から年と月を抽出する関数
-function extractYearMonth(yyyymm: string): { year: number; month: number } {
-	const year = parseInt(yyyymm.substring(0, 4), 10);
-	const month = parseInt(yyyymm.substring(4, 6), 10);
-	return { year, month };
-}
+// 開始日から終了日までの日付リストを生成する関数
+function generateDateList(startDate: Date, endDate: Date): string[] {
+  const dateList: string[] = [];
 
-// 開始年月から終了年月までの年月リストを生成する関数
-function generateYearMonthList(startYYYYMM: string, endYYYYMM: string): string[] {
-	const start = extractYearMonth(startYYYYMM);
-	const end = extractYearMonth(endYYYYMM);
+  // 開始日から終了日までループ
+  const currentDate = new Date(startDate);
+  while (currentDate <= endDate) {
+    // YYYY-MM-DD形式で取得してYYYYMMDD形式に変換
+    const dateStr = formatDate(currentDate);
+    dateList.push(convertToYYYYMMDD(dateStr));
 
-	const yearMonthList: string[] = [];
+    // 次の日に進める
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
 
-	let currentYear = start.year;
-	let currentMonth = start.month;
-
-	while (currentYear < end.year || (currentYear === end.year && currentMonth <= end.month)) {
-		// YYYYMM形式で追加
-		yearMonthList.push(`${currentYear}${currentMonth.toString().padStart(2, '0')}`);
-
-		// 次の月に進める
-		currentMonth++;
-		if (currentMonth > 12) {
-			currentMonth = 1;
-			currentYear++;
-		}
-	}
-
-	return yearMonthList;
+  return dateList;
 }
 
 export const GET: RequestHandler = async ({ url }) => {
-	// URLパラメータから日付範囲を取得
-	const startParam = url.searchParams.get('start');
-	const endParam = url.searchParams.get('end');
-	console.log('startParam:', startParam, 'endParam:', endParam);
-	if (!startParam || !endParam) {
-		return json({ error: 'start and end parameters are required' }, { status: 400 });
-	}
+  // URLパラメータから日付範囲を取得
+  const startParam = url.searchParams.get('start');
+  const endParam = url.searchParams.get('end');
+  console.log('startParam:', startParam, 'endParam:', endParam);
+  if (!startParam || !endParam) {
+    return json({ error: 'start and end parameters are required' }, { status: 400 });
+  }
 
-	// YYYY-MM-DD形式かどうかチェック
-	const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-	if (!dateRegex.test(startParam) || !dateRegex.test(endParam)) {
-		return json(
-			{ error: 'start and end parameters must be in YYYY-MM-DD format' },
-			{ status: 400 }
-		);
-	}
+  // YYYY-MM-DD形式かどうかチェック
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(startParam) || !dateRegex.test(endParam)) {
+    return json(
+      { error: 'start and end parameters must be in YYYY-MM-DD format' },
+      { status: 400 }
+    );
+  }
 
-	// YYYY-MM-DD形式からYYYYMM形式を抽出
-	const startYYYYMM = extractYYYYMMFromDate(startParam);
-	const endYYYYMM = extractYYYYMMFromDate(endParam);
+  // 日付オブジェクトを作成
+  const startDate = new Date(startParam);
+  const endDate = new Date(endParam);
 
-	// 年月リストを生成してカンマ区切りで連結
-	const yearMonthList = generateYearMonthList(startYYYYMM, endYYYYMM);
-	const ymParam = yearMonthList.join(',');
+  // 日付リストを生成してカンマ区切りで連結
+  const dateList = generateDateList(startDate, endDate);
+  const ymdParam = dateList.join(',');
 
-	// 日付オブジェクトも作成（ダミーデータ生成用）
-	const startDate = new Date(startParam);
-	const endDate = new Date(endParam);
+  // ダミーデータ生成用に日付オブジェクトを保持
 
-	try {
-		// APIパラメータを設定
-		const params = new URLSearchParams({
-			ym: ymParam,
-			count: '100'
-		});
+  try {
+    // APIパラメータを設定
+    const params = new URLSearchParams({
+      ymd: ymdParam,
+      prefecture: 'online',
+      count: '100',
+      order: '2'
+    });
 
-		// APIキーがある場合はヘッダーに追加
-		const headers: HeadersInit = {};
-		if (import.meta.env.CONNPASS_API_KEY) {
-			headers['X-API-Key'] = import.meta.env.CONNPASS_API_KEY;
-		}
+    // APIキーがある場合はヘッダーに追加
+    const headers: HeadersInit = {};
+    if (CONNPASS_API_KEY) {
+      headers['X-API-Key'] = CONNPASS_API_KEY;
+    }
 
-		// APIリクエスト
-		console.log(params.toString());
-		const response = await fetch(`https://connpass.com/api/v2/events/?${params}`, {
-			method: 'GET',
-			headers
-		});
+    // APIリクエスト
+    const response = await fetch(`https://connpass.com/api/v2/events/?${params}`, {
+      method: 'GET',
+      headers
+    });
 
-		// レスポンスのステータスコードをチェック
-		if (!response.ok) {
-			console.error(`API error: ${response.status} ${response.statusText}`);
-			// APIエラーの場合はダミーデータを返す
-			return json(generateDummyData(startDate, endDate));
-		}
+    // レスポンスのステータスコードをチェック
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`);
+      // APIエラーの場合はダミーデータを返す
+      return json(generateDummyData(startDate, endDate));
+    }
 
-		// レスポンスをJSONとしてパース
-		const data = (await response.json()) as ConnpassResponse;
-		return json(data);
-	} catch (error) {
-		// エラーが発生した場合はログに出力し、ダミーデータを返す
-		console.error('Error fetching events from connpass API:', error);
-		return json(generateDummyData(startDate, endDate));
-	}
+    // レスポンスをJSONとしてパース
+    const data = (await response.json()) as ConnpassResponse;
+    // ランチタイムイベントのフィルタリング（12:00より後かつ13:00より前のイベント）
+    const lunchTimeEvents = data.events.filter((event: ConnpassEvent) => {
+      console.log('----------------------------------------------------------');
+      console.log('title:', event.title);
+      console.log('started_at:', event.started_at);
+      console.log('ended_at:', event.ended_at);
+      // started_atとended_atから時刻部分を抽出
+      const startedAtTime = event.started_at.split('T')[1]; // "HH:MM:SS"形式
+      const endedAtTime = event.ended_at.split('T')[1]; // "HH:MM:SS"形式
+
+      // 時刻を比較するために時間と分を抽出
+      const [startHour] = startedAtTime.split(':').map(Number);
+      const [endHour, endMinute] = endedAtTime.split(':').map(Number);
+
+      // 12:00より後かつ13:00より前のイベントをフィルタリング
+      const isAfter1200 = startHour === 12;
+      const isBefore1300 = endHour === 12 || (endHour === 13 && endMinute === 0);
+      return isAfter1200 && isBefore1300;
+    });
+
+    // フィルタリングした結果を返す
+    const filteredData: ConnpassResponse = {
+      ...data,
+      results_returned: lunchTimeEvents.length,
+      events: lunchTimeEvents
+    };
+    return json(filteredData);
+  } catch (error) {
+    // エラーが発生した場合はログに出力し、ダミーデータを返す
+    console.error('Error fetching events from connpass API:', error);
+    const dummyData = generateDummyData(startDate, endDate);
+
+    // ダミーデータもランチタイムでフィルタリング
+    const lunchTimeDummyEvents = dummyData.events.filter((event) => {
+      // started_atとended_atから時刻部分を抽出
+      const startedAtTime = event.started_at.split(' ')[1]; // "HH:MM:SS"形式
+      const endedAtTime = event.ended_at.split(' ')[1]; // "HH:MM:SS"形式
+
+      // 時刻を比較するために時間と分を抽出
+      const [startHour, startMinute] = startedAtTime.split(':').map(Number);
+      const [endHour, endMinute] = endedAtTime.split(':').map(Number);
+
+      // 12:00より後かつ13:00より前のイベントをフィルタリング
+      const isAfter1200 = startHour > 12 || (startHour === 12 && startMinute > 0);
+      const isBefore1300 = endHour < 13 || (endHour === 13 && endMinute === 0);
+
+      return isAfter1200 && isBefore1300;
+    });
+
+    const filteredDummyData: ConnpassResponse = {
+      ...dummyData,
+      results_returned: lunchTimeDummyEvents.length,
+      events: lunchTimeDummyEvents
+    };
+
+    return json(filteredDummyData);
+  }
 };
