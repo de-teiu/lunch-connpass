@@ -58,6 +58,13 @@ export async function fetchLunchEvents(startDate: Date, endDate: Date): Promise<
       method: 'GET'
     });
 
+    // 504エラー（タイムアウト）をチェック
+    if (response.status === 504) {
+      return {
+        error: 'タイムアウトが発生しました。再検索してください'
+      } as ConnpassErrorResponse;
+    }
+
     // レスポンスをJSONとしてパース
     const data = await response.json();
 
