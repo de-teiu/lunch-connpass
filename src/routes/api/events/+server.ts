@@ -74,10 +74,10 @@ export const GET: RequestHandler = async ({ url }) => {
     return json({ error: '開始日は終了日より前である必要があります' }, { status: 400 });
   }
 
-  // 日付範囲が31日より大きい場合はエラー
+  // 日付範囲が32日より大きい場合はエラー
   const dayDiff = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  if (dayDiff > 31) {
-    return json({ error: '日付範囲は31日以内である必要があります' }, { status: 400 });
+  if (dayDiff > 32) {
+    return json({ error: '日付範囲は32日以内である必要があります' }, { status: 400 });
   }
 
   // 日付リストを生成
